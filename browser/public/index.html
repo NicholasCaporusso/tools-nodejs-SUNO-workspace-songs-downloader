@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUNO Workspace Browser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Workspaces</h2>
+            </div>
+            <ul id="workspace-list" class="workspace-list">
+                <li class="loading">Loading...</li>
+            </ul>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-info">
+                    <h1 id="current-workspace-name">Select a Workspace</h1>
+                    <a id="suno-workspace-link" target="_blank" class="suno-link hidden">View on SUNO ↗</a>
+                </div>
+                <div class="search-bar hidden" id="search-container">
+                    <input type="text" id="search-input" placeholder="Search songs...">
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="song-list-container">
+                    <ul id="song-list" class="song-list">
+                        <li class="empty-state" style="grid-column: 1 / -1; width: 100%;">No workspace selected</li>
+                    </ul>
+                </div>
+                <div id="song-details-panel" class="song-details-panel hidden">
+                    <!-- Song details populated here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="audio-player-container hidden" id="audio-player-container">
+        <div class="now-playing">
+            <img id="now-playing-img" src="" alt="Artwork">
+            <div class="now-playing-info">
+                <div id="now-playing-title" class="title">Title</div>
+                <div id="now-playing-tags" class="tags">Tags</div>
+            </div>
+        </div>
+        <audio id="audio-player" controls controlsList="nodownload"></audio>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
