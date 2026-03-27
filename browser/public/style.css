@@ -204,7 +204,7 @@ body {
 }
 
 .badge-duration {
-    top: 8px;
+    bottom: 8px;
     right: 8px;
 }
 
@@ -222,9 +222,29 @@ body {
     background-color: #f59e0b; /* Orange */
 }
 
+.card-suno-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #000;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    z-index: 2;
+    transition: transform 0.2s;
+}
+
+.card-suno-btn:hover {
+    transform: scale(1.05);
+}
+
 .card-play-btn {
     position: absolute;
-    bottom: 10px;
+    bottom: 40px;
     right: 10px;
     width: 40px;
     height: 40px;
@@ -277,6 +297,69 @@ body {
     color: var(--text-secondary);
 }
 
+.card-footer-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+}
+
+.plays-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.card-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.icon-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.icon-btn:hover:not(.disabled) {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.icon-btn.active-like {
+    color: #166534;
+    background-color: #dcfce7;
+}
+
+.icon-btn.active-dislike {
+    color: #991b1b;
+    background-color: #fee2e2;
+}
+
+.icon-btn.active-like svg, .action-btn.active-like svg {
+    fill: #bbf7d0;
+    stroke: #166534;
+}
+
+.icon-btn.active-dislike svg, .action-btn.active-dislike svg {
+    fill: #fecaca;
+    stroke: #991b1b;
+}
+
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
@@ -312,6 +395,55 @@ body {
     margin-bottom: 20px;
 }
 
+.interaction-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--panel-bg);
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+.action-btn.active-like {
+    background-color: #dcfce7;
+    border-color: #22c55e;
+    color: #166534;
+}
+
+.action-btn.active-dislike {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    color: #991b1b;
+}
+
+.action-btn.action-download {
+    text-decoration: none;
+    background-color: #f1f5f9;
+}
+.action-btn.action-download:hover {
+    background-color: #e2e8f0;
+}
+.action-btn.action-download.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -340,6 +472,48 @@ body {
     font-size: 0.95rem;
     line-height: 1.6;
     color: var(--text-primary);
+}
+
+.comment-section {
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.comment-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.comment-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.comment-input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+.comment-save-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.comment-save-btn:hover {
+    background-color: var(--accent-hover);
 }
 
 .play-btn {

@@ -10,8 +10,15 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const WORKSPACES_FILE = path.join(DATA_DIR, 'workspaces.json');
 const WORKSPACES_DIR = path.join(DATA_DIR, 'workspaces');
 const SONGS_DIR = path.join(DATA_DIR, 'songs');
+const USER_DATA_FILE = path.join(DATA_DIR, 'user_song_data.json');
+
+// Initialize if it doesn't exist
+if (!fs.existsSync(USER_DATA_FILE)) {
+    fs.writeFileSync(USER_DATA_FILE, JSON.stringify({}));
+}
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 // API Routes
 app.get('/api/workspaces', (req, res) => {
@@ -63,6 +70,41 @@ app.get('/api/workspaces/:id/songs', (req, res) => {
     });
 });
 
+app.get('/api/user-data', (req, res) => {
+    fs.readFile(USER_DATA_FILE, 'utf8', (err, data) => {
+        if (err) return res.status(500).json({ error: 'Failed to read user data' });
+        res.setHeader('Content-Type', 'application/json');
+        res.send(data);
+    });
+});
+
+app.post('/api/user-data/:songId', (req, res) => {
+    const songId = req.params.songId;
+    const { action, value } = req.body;
+    
+    fs.readFile(USER_DATA_FILE, 'utf8', (err, data) => {
+        let userData = {};
+        if (!err && data) {
+            try { userData = JSON.parse(data); } catch(e) {}
+        }
+        
+        if (!userData[songId]) {
+            userData[songId] = { likeStatus: null, comment: '' };
+        }
+        
+        if (action === 'likeStatus') {
+            userData[songId].likeStatus = value;
+        } else if (action === 'comment') {
+            userData[songId].comment = value;
+        }
+        
+        fs.writeFile(USER_DATA_FILE, JSON.stringify(userData, null, 2), (err) => {
+             if (err) return res.status(500).json({ error: 'Failed to save user data' });
+             res.json({ success: true, data: userData[songId] });
+        });
+    });
+});
+
 app.get('/api/audio/:workspaceId/:songId', (req, res) => {
     const workspaceId = req.params.workspaceId;
     const songId = req.params.songId;
@@ -78,6 +120,24 @@ app.get('/api/audio/:workspaceId/:songId', (req, res) => {
         
         const filePath = path.join(wsDir, songFile);
         res.sendFile(filePath);
+    });
+});
+
+app.get('/api/download/:workspaceId/:songId', (req, res) => {
+    const workspaceId = req.params.workspaceId;
+    const songId = req.params.songId;
+    const wsDir = path.join(SONGS_DIR, workspaceId);
+
+    fs.readdir(wsDir, (err, files) => {
+        if (err) return res.status(404).send('Workspace audio directory not found');
+        const wavFile = files.find(f => f === `${songId}.wav`);
+        const mp3File = files.find(f => f === `${songId}.mp3`);
+        
+        const songFile = wavFile || mp3File;
+        if (!songFile) return res.status(404).send('Audio file not found');
+        
+        const filePath = path.join(wsDir, songFile);
+        res.download(filePath, songFile);
     });
 });
 

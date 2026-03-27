@@ -2,6 +2,7 @@ let workspacesData = {};
 let currentWorkspaceId = null;
 let currentSongsMap = new Map();
 let currentPlayingSongId = null;
+let userSongData = {};
 
 // Elements
 const workspaceListEl = document.getElementById('workspace-list');
@@ -20,12 +21,16 @@ const nowPlayingTags = document.getElementById('now-playing-tags');
 // Initialize
 async function init() {
     try {
-        const res = await fetch('/api/workspaces');
-        workspacesData = await res.json();
+        const [wsRes, userRes] = await Promise.all([
+            fetch('/api/workspaces'),
+            fetch('/api/user-data')
+        ]);
+        workspacesData = await wsRes.json();
+        userSongData = await userRes.json();
         renderWorkspaces();
     } catch (err) {
-        console.error('Failed to load workspaces', err);
-        workspaceListEl.innerHTML = '<li class="loading">Error loading workspaces.</li>';
+        console.error('Failed to load workspaces or user data', err);
+        workspaceListEl.innerHTML = '<li class="loading">Error loading data.</li>';
     }
 }
 
@@ -134,11 +139,19 @@ function renderSongs(filter = '') {
             formatBadge = `<span class="badge badge-format badge-format-${fmt.toLowerCase()}">${fmt}</span>`;
         }
         
+        const userData = userSongData[song.id] || { likeStatus: null, comment: '' };
+        const likeActive = userData.likeStatus === 'liked' ? 'active-like' : '';
+        const dislikeActive = userData.likeStatus === 'disliked' ? 'active-dislike' : '';
+        
+        const downloadHref = song.is_downloaded ? `/api/download/${currentWorkspaceId}/${song.id}` : '#';
+        const downloadClass = song.is_downloaded ? '' : 'disabled';
+        
         const isPlaying = (currentPlayingSongId === song.id && !audioPlayer.paused);
         const playIcon = isPlaying ? '⏹' : '▶';
 
         li.innerHTML = `
             <div class="card-image-wrapper">
+                <a href="https://suno.com/song/${song.id}" target="_blank" class="card-suno-btn" title="View on SUNO">↗ SUNO</a>
                 <img class="song-img" src="${imgUrl}" alt="Song art" loading="lazy">
                 ${typeBadge}
                 ${formatBadge}
@@ -150,7 +163,20 @@ function renderSongs(filter = '') {
             <div class="song-info">
                 <h3>${song.title || 'Untitled'}</h3>
                 <div class="song-meta">${tags}</div>
-                <div class="song-meta" style="margin-top: 4px">${song.play_count || 0} plays</div>
+                <div class="card-footer-meta">
+                    <span class="plays-count">${song.play_count || 0} plays</span>
+                    <div class="card-actions">
+                        <button class="icon-btn like-btn ${likeActive}" data-id="${song.id}" title="Like">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                        </button>
+                        <button class="icon-btn dislike-btn ${dislikeActive}" data-id="${song.id}" title="Dislike">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2"></path></svg>
+                        </button>
+                        <a href="${downloadHref}" class="icon-btn download-btn ${downloadClass}" title="Download" data-id="${song.id}" ${song.is_downloaded ? 'download' : ''}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </a>
+                    </div>
+                </div>
             </div>
         `;
         
@@ -160,9 +186,29 @@ function renderSongs(filter = '') {
         });
         
         li.querySelector('.card-image-wrapper').addEventListener('click', (e) => {
-            if (!e.target.closest('.card-play-btn')) {
+            if (!e.target.closest('.card-play-btn') && !e.target.closest('.card-suno-btn')) {
                 showSongDetails(song);
             }
+        });
+
+        // click on card action buttons
+        const likeBtn = li.querySelector('.like-btn');
+        const dislikeBtn = li.querySelector('.dislike-btn');
+        const downloadBtn = li.querySelector('.download-btn');
+        
+        likeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleLikeStatus(song.id, 'liked');
+        });
+        
+        dislikeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleLikeStatus(song.id, 'disliked');
+        });
+        
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!song.is_downloaded) e.preventDefault();
         });
 
         // click on play button
@@ -185,12 +231,33 @@ function showSongDetails(song) {
     const imgUrl = song.image_large_url || song.image_url || 'https://cdn1.suno.ai/defaultBlue.webp';
     const lyrics = song.metadata && song.metadata.prompt ? song.metadata.prompt : 'No lyrics available.';
     
+    const userData = userSongData[song.id] || { likeStatus: null, comment: '' };
+    const likeActive = userData.likeStatus === 'liked' ? 'active-like' : '';
+    const dislikeActive = userData.likeStatus === 'disliked' ? 'active-dislike' : '';
+    
+    const downloadHref = song.is_downloaded ? `/api/download/${currentWorkspaceId}/${song.id}` : '#';
+    const downloadClass = song.is_downloaded ? '' : 'disabled';
+    const downloadText = song.is_downloaded ? '⬇ Download' : 'Not Downloaded';
+    
     songDetailsPanel.innerHTML = `
         <div class="details-header">
             <img src="${imgUrl}" alt="Cover">
             <h2>${song.title || 'Untitled'}</h2>
             <div class="details-meta">${song.created_at ? 'Created: ' + new Date(song.created_at).toLocaleString() : ''}</div>
             <a href="https://suno.com/song/${song.id}" target="_blank" class="suno-link" style="display:block; margin-bottom: 15px;">View on SUNO ↗</a>
+            
+            <div class="interaction-bar">
+                <button class="action-btn like-btn ${likeActive}" data-id="${song.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> Like
+                </button>
+                <button class="action-btn dislike-btn ${dislikeActive}" data-id="${song.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2"></path></svg> Dislike
+                </button>
+                <a href="${downloadHref}" class="action-btn download-btn action-download ${downloadClass}" data-id="${song.id}" ${song.is_downloaded ? 'download' : ''}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> ${downloadText}
+                </a>
+            </div>
+
             <button class="play-btn ${song.is_downloaded ? '' : 'disabled'}" id="play-btn-${song.id}" ${song.is_downloaded ? '' : 'disabled'}>
                 ${song.is_downloaded ? 'Play Song' : 'Not Downloaded'}
             </button>
@@ -200,6 +267,11 @@ function showSongDetails(song) {
             <h3>Lyrics / Prompt</h3>
             <div class="lyrics">${lyrics}</div>
         </div>
+        <div class="comment-section">
+            <h3>Notes / Comments</h3>
+            <textarea class="comment-input" id="comment-input-${song.id}" placeholder="Write a comment...">${userData.comment || ''}</textarea>
+            <button class="comment-save-btn" id="comment-save-${song.id}">Save Comment</button>
+        </div>
     `;
     
     const playBtn = document.getElementById(`play-btn-${song.id}`);
@@ -208,6 +280,23 @@ function showSongDetails(song) {
              playSong(song);
         });
     }
+
+    const likeBtn = songDetailsPanel.querySelector(`.like-btn[data-id="${song.id}"]`);
+    const dislikeBtn = songDetailsPanel.querySelector(`.dislike-btn[data-id="${song.id}"]`);
+    const commentSaveBtn = document.getElementById(`comment-save-${song.id}`);
+    const commentInput = document.getElementById(`comment-input-${song.id}`);
+
+    likeBtn.addEventListener('click', () => toggleLikeStatus(song.id, 'liked'));
+    dislikeBtn.addEventListener('click', () => toggleLikeStatus(song.id, 'disliked'));
+    
+    commentSaveBtn.addEventListener('click', async () => {
+        const val = commentInput.value;
+        const originalText = commentSaveBtn.textContent;
+        commentSaveBtn.textContent = 'Saving...';
+        await saveUserData(song.id, 'comment', val);
+        commentSaveBtn.textContent = 'Saved!';
+        setTimeout(() => commentSaveBtn.textContent = originalText, 2000);
+    });
 }
 
 function playSong(song) {
@@ -243,6 +332,42 @@ audioPlayer.addEventListener('pause', () => renderSongs(searchInput.value));
 searchInput.addEventListener('input', (e) => {
     renderSongs(e.target.value);
 });
+
+async function toggleLikeStatus(songId, targetStatus) {
+    if (!userSongData[songId]) userSongData[songId] = { likeStatus: null, comment: '' };
+    
+    let newStatus = targetStatus;
+    if (userSongData[songId].likeStatus === targetStatus) newStatus = null;
+    
+    userSongData[songId].likeStatus = newStatus;
+    
+    document.querySelectorAll(`.like-btn[data-id="${songId}"]`).forEach(btn => btn.classList.remove('active-like'));
+    document.querySelectorAll(`.dislike-btn[data-id="${songId}"]`).forEach(btn => btn.classList.remove('active-dislike'));
+    
+    if (newStatus === 'liked') {
+        document.querySelectorAll(`.like-btn[data-id="${songId}"]`).forEach(btn => btn.classList.add('active-like'));
+    }
+    if (newStatus === 'disliked') {
+        document.querySelectorAll(`.dislike-btn[data-id="${songId}"]`).forEach(btn => btn.classList.add('active-dislike'));
+    }
+    
+    await saveUserData(songId, 'likeStatus', newStatus);
+}
+
+async function saveUserData(songId, action, value) {
+    if (!userSongData[songId]) userSongData[songId] = { likeStatus: null, comment: '' };
+    userSongData[songId][action] = value;
+    
+    try {
+        await fetch(`/api/user-data/${songId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, value })
+        });
+    } catch(err) {
+        console.error('Failed to save user data', err);
+    }
+}
 
 // Start app
 init();
