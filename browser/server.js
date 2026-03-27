@@ -1,7 +1,12 @@
+// Run from the project root so all relative .env paths (FOLDER_SESSION, etc.) resolve correctly
+process.chdir(require('path').join(__dirname, '..'));
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const openurl = require('openurl');
+
+
 
 const app = express();
 const PORT = process.env.PORT || 3035;
@@ -139,6 +144,114 @@ app.get('/api/download/:workspaceId/:songId', (req, res) => {
         const filePath = path.join(wsDir, songFile);
         res.download(filePath, songFile);
     });
+});
+
+// ── Job Runner ──────────────────────────────────────────────────────────────
+// Downloaders live one level up from the browser folder
+const ROOT_DIR = path.join(__dirname, '..');
+
+let jobRunning = false;
+
+// Helper: pipe a downloader call through SSE, capturing console output
+function runJob(req, res, label, asyncFn) {
+    if (jobRunning) {
+        res.status(409).json({ error: 'A job is already running. Please wait.' });
+        return;
+    }
+    jobRunning = true;
+
+    // Disable Nagle buffering so every write() is flushed immediately
+    if (req.socket) req.socket.setNoDelay(true);
+
+    // Set up SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering
+    res.flushHeaders();
+
+    const send = (msg) => {
+        res.write(`data: ${JSON.stringify({ msg })}\n\n`);
+        if (res.flush) res.flush();
+    };
+
+    // Patch stdout/stderr temporarily
+    const origStdoutWrite = process.stdout.write.bind(process.stdout);
+    const origStderrWrite = process.stderr.write.bind(process.stderr);
+    process.stdout.write = (chunk, ...args) => { send(String(chunk).trimEnd()); return origStdoutWrite(chunk, ...args); };
+    process.stderr.write = (chunk, ...args) => { send('[ERR] ' + String(chunk).trimEnd()); return origStderrWrite(chunk, ...args); };
+
+    send(`▶ ${label}`);
+    send('⏳ Launching browser — this may take 15–30 seconds silently…');
+
+    // Heartbeat: SSE comment every 3s keeps connection alive; visible ping every 15s
+    let ticks = 0;
+    const heartbeat = setInterval(() => {
+        try {
+            res.write(': keepalive\n\n');
+            if (res.flush) res.flush();
+            ticks++;
+            if (ticks % 5 === 0) send('⏳ Still running…');
+        } catch(e) { clearInterval(heartbeat); }
+    }, 3000);
+
+    asyncFn()
+        .then(() => { send('✅ Done.'); })
+        .catch((err) => { send('❌ Error: ' + (err.message || String(err))); })
+        .finally(() => {
+            clearInterval(heartbeat);
+            process.stdout.write = origStdoutWrite;
+            process.stderr.write = origStderrWrite;
+            jobRunning = false;
+            res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+            res.end();
+        });
+}
+
+// POST /api/jobs/scrape-workspaces
+app.post('/api/jobs/scrape-workspaces', (req, res) => {
+    const { downloadWorkspacesIndex } = require(path.join(ROOT_DIR, 'downloader-01-workspaces-index.js'));
+    runJob(req, res, 'Scraping workspaces index…', () => downloadWorkspacesIndex());
+});
+
+// POST /api/jobs/scrape-workspace-songs/:workspaceId
+app.post('/api/jobs/scrape-workspace-songs/:workspaceId', (req, res) => {
+    const wsId = req.params.workspaceId;
+    const { downloadWorkspacesIndex } = require(path.join(ROOT_DIR, 'downloader-01-workspaces-index.js'));
+    const { downloadWorkspacesDetail } = require(path.join(ROOT_DIR, 'downloader-02-workspaces-detail.js'));
+
+    runJob(req, res, `Scraping songs for workspace ${wsId}…`, async () => {
+        // Step 1 – refresh workspace index so clip_count etc. are up to date
+        console.log('── Step 1/2: Refreshing workspace index…');
+        await downloadWorkspacesIndex();
+
+        // Step 2 – fetch songs for the specific workspace
+        const workspacesRaw = fs.existsSync(WORKSPACES_FILE) ? JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8')) : {};
+        const workspace = workspacesRaw[wsId];
+        if (!workspace) throw new Error(`Workspace '${wsId}' not found after index refresh.`);
+        console.log(`── Step 2/2: Scraping songs for "${workspace.name || wsId}"…`);
+        await downloadWorkspacesDetail(workspace);
+    });
+});
+
+
+// POST /api/jobs/download-mp3/:workspaceId
+app.post('/api/jobs/download-mp3/:workspaceId', (req, res) => {
+    const wsId = req.params.workspaceId;
+    const { downloadWorkspaceSongs } = require(path.join(ROOT_DIR, 'downloader-03-songs-MP3.js'));
+    runJob(req, res, `Downloading MP3s for workspace ${wsId}…`, () => downloadWorkspaceSongs(`${wsId}.json`));
+});
+
+// POST /api/jobs/download-wav/:workspaceId
+app.post('/api/jobs/download-wav/:workspaceId', (req, res) => {
+    const wsId = req.params.workspaceId;
+    const { downloadWorkspaceSongs } = require(path.join(ROOT_DIR, 'downloader-03-songs-WAV.js'));
+    runJob(req, res, `Downloading WAVs for workspace ${wsId}…`, () => downloadWorkspaceSongs(`${wsId}.json`));
+});
+
+// GET /api/jobs/status
+app.get('/api/jobs/status', (req, res) => {
+    res.json({ running: jobRunning });
 });
 
 app.listen(PORT, () => {

@@ -127,4 +127,35 @@ async function downloadSong(workspaceName,song,autoclose=true){
 }
 
 // Run Script Sequence natively
-downloadAllSongs()
+if(require.main === module){
+	// Parse CLI args: [workspaceId] [--delete]
+	// Usage: node downloader-03-songs-MP3 [workspaceId] [--delete]
+	const args = process.argv.slice(2)
+	const deleteFirst = args.includes('--delete')
+	const targetId = args.find(a => !a.startsWith('--'))
+	
+	if(targetId){
+		// Single-workspace mode
+		const file = `${targetId}.json`
+		if(!fs.existsSync(`${FOLDER_WORKSPACES}/${file}`)){
+			console.error(`Workspace file not found: ${FOLDER_WORKSPACES}/${file}`)
+			process.exit(1)
+		}
+		if(deleteFirst){
+			const audioDir = `${FOLDER_SONGS}/${targetId}`
+			if(fs.existsSync(audioDir)){
+				console.log(`Deleting existing MP3s in ${audioDir}`)
+				fs.readdirSync(audioDir)
+					.filter(f => f.endsWith('.mp3'))
+					.forEach(f => fs.unlinkSync(`${audioDir}/${f}`))
+			}
+		}
+		downloadWorkspaceSongs(file)
+	} else {
+		downloadAllSongs()
+	}
+}
+
+module.exports = { downloadAllSongs, downloadWorkspaceSongs, downloadSong }
+
+

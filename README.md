@@ -35,7 +35,32 @@ The project includes three sequential Node.js scripts that fetch your data direc
 
 ---
 
-## 📁 Data Structure
+### CLI Arguments
+
+Scripts `downloader-02`, `downloader-03-songs-MP3`, and `downloader-03-songs-WAV` accept optional CLI arguments when run in standalone mode.
+
+| Argument | Description |
+|---|---|
+| `<workspaceId>` | If provided, only that workspace is processed. Omit to process all workspaces. |
+| `--delete` | Delete the existing data for the target workspace before re-downloading. |
+
+**`downloader-02-workspaces-detail.js`** — `--delete` removes the workspace's song-metadata JSON file.
+```bash
+node downloader-02-workspaces-detail.js                          # all workspaces
+node downloader-02-workspaces-detail.js <workspaceId>            # single workspace
+node downloader-02-workspaces-detail.js <workspaceId> --delete   # delete JSON, then re-fetch
+```
+
+**`downloader-03-songs-MP3.js`** / **`downloader-03-songs-WAV.js`** — `--delete` removes existing `.mp3` / `.wav` files for that workspace before downloading.
+```bash
+node downloader-03-songs-MP3.js                          # all workspaces
+node downloader-03-songs-MP3.js <workspaceId>            # single workspace
+node downloader-03-songs-MP3.js <workspaceId> --delete   # delete MP3s, then re-download
+
+node downloader-03-songs-WAV.js <workspaceId> --delete   # delete WAVs, then re-download
+```
+
+
 
 After running all the downloading scripts, your `data/` folder will be structured like this:
 
@@ -70,7 +95,15 @@ We provide a fast, modern NodeJS + Express single-page application (SPA) to brow
 - **SUNO Integration**: Link back to specific songs (`suno.com/song/...`) and workspaces (`suno.com/create?wid=...`) directly on the live SUNO site via dedicated buttons.
 - **User Interactions**: Like or Dislike songs and leave personal comments directly from the song card or details panel. This data is saved to a persistent `user_song_data.json` file, so your preferences remain tied to the songs across workspaces.
 - **Direct Downloads**: A dedicated download button is present on every song card and details panel, allowing you to instantly save the local `.mp3` or `.wav` file to your native downloads folder.
+- **Sorting**: Sort songs in the current workspace by creation date (default), title (A–Z), or liked status.
+- **Waveform Player**: A WaveSurfer.js-powered waveform visualisation replaces the native audio control in the bottom player bar, with clickable seek and a circular play/pause button.
+- **In-Browser Scraping & Downloads**: Trigger the downloader scripts directly from the UI without leaving the browser:
+  - **↺ Scrape** (sidebar) — re-scrapes the full workspace list.
+  - **↺ Scrape Songs** (header) — re-scrapes song metadata for the current workspace.
+  - **⬇ MP3 / ⬇ WAV** (header) — downloads missing MP3 or WAV files for the current workspace.
+  - A live job-log modal streams real-time console output while the job runs.
 - **Polished Interface**: Built with modern, flat-design SVG icons and responsive interactions for a professional, frictionless browsing experience.
+
 
 ### How to Run the Interface
 

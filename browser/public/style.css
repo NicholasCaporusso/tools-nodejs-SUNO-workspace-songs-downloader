@@ -44,13 +44,45 @@ body {
 }
 
 .sidebar-header {
-    padding: 20px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .sidebar-header h2 {
     font-size: 1.25rem;
     font-weight: 600;
+}
+
+.sidebar-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--panel-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sidebar-action-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.sidebar-action-btn.running {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    cursor: wait;
 }
 
 .workspace-list {
@@ -155,6 +187,39 @@ body {
 .sort-btn.active {
     background: var(--accent-color);
     color: #fff;
+}
+
+.workspace-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.action-toolbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--panel-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+}
+
+.action-toolbar-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.action-toolbar-btn.running {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    cursor: wait;
 }
 
 .header-info h1 {
@@ -688,3 +753,86 @@ body {
 .hidden {
     display: none !important;
 }
+
+/* Job Log Modal */
+.job-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.job-modal-inner {
+    background: var(--panel-bg);
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    width: 680px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.job-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.job-modal-close {
+    padding: 5px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--panel-bg);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.18s;
+}
+
+.job-modal-close:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.job-modal-close:not(:disabled):hover {
+    background: var(--hover-bg);
+}
+
+.job-log {
+    padding: 16px 20px;
+    margin: 0;
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: #f8fafc;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Animated dot shown while job is running */
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.job-running-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    margin-right: 8px;
+    animation: pulse-dot 1.2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+

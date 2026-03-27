@@ -51,7 +51,7 @@ async function downloadWorkspacesIndex(){
 	ctrl.startNetCapture()
 	
 	// Load existing workspaces from file, or initialize an empty dictionary
-	let workspaces=fs.existsSync(FILE_WORKSPACES) ? JSON.parse(fs.readFileSync(FILE_WORKSPACES,'utf8')) : {}
+	let workspaces={}
 	let num_total_results=null
 	
 	// Navigate directly to the user's workspaces overview page
@@ -103,4 +103,6 @@ async function downloadWorkspacesIndex(){
 }
 
 // Execute the download logic
-downloadWorkspacesIndex()
+if(require.main === module) downloadWorkspacesIndex()
+
+module.exports = { downloadWorkspacesIndex }

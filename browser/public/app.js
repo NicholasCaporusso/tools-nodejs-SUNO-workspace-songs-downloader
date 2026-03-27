@@ -11,6 +11,7 @@ const songListEl = document.getElementById('song-list');
 const searchInput = document.getElementById('search-input');
 const searchContainer = document.getElementById('search-container');
 const sortContainer = document.getElementById('sort-container');
+const workspaceActions = document.getElementById('workspace-actions');
 const currentWsNameEl = document.getElementById('current-workspace-name');
 const sunoWsLink = document.getElementById('suno-workspace-link');
 const songDetailsPanel = document.getElementById('song-details-panel');
@@ -21,6 +22,15 @@ const waveformDurationEl = document.getElementById('waveform-duration');
 const nowPlayingImg = document.getElementById('now-playing-img');
 const nowPlayingTitle = document.getElementById('now-playing-title');
 const nowPlayingTags = document.getElementById('now-playing-tags');
+
+// Job modal elements
+const jobModal = document.getElementById('job-modal');
+const jobModalTitle = document.getElementById('job-modal-title');
+const jobModalClose = document.getElementById('job-modal-close');
+const jobLog = document.getElementById('job-log');
+
+jobModalClose.addEventListener('click', () => jobModal.classList.add('hidden'));
+
 
 // ── WaveSurfer ─────────────────────────────────────────────────────────────
 const wavesurfer = WaveSurfer.create({
@@ -137,6 +147,7 @@ async function selectWorkspace(id) {
     
     searchContainer.classList.remove('hidden');
     sortContainer.classList.remove('hidden');
+    workspaceActions.classList.remove('hidden');
     songListEl.innerHTML = '<li class="empty-state" style="grid-column: 1 / -1; width: 100%;">Loading songs...</li>';
     songDetailsPanel.classList.add('hidden');
     
@@ -454,3 +465,98 @@ async function saveUserData(songId, action, value) {
 
 // Start app
 init();
+
+// ── Job Runner ─────────────────────────────────────────────────────────────
+function runJob(url, title, triggerBtn, onComplete) {
+    // Show pulsing dot to signal active job
+    jobModalTitle.innerHTML = `<span class="job-running-dot"></span>${title}`;
+    jobLog.textContent = '';
+    jobModal.classList.remove('hidden');
+    jobModalClose.disabled = true;
+    if (triggerBtn) {
+        triggerBtn.classList.add('running');
+        triggerBtn.disabled = true;
+    }
+
+    const markDone = () => {
+        jobModalTitle.textContent = title; // remove dot
+        jobModalClose.disabled = false;
+        if (triggerBtn) { triggerBtn.classList.remove('running'); triggerBtn.disabled = false; }
+        if (typeof onComplete === 'function') onComplete();
+    };
+
+    fetch(url, { method: 'POST' })
+        .then(async res => {
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: res.statusText }));
+                jobLog.textContent += '\n❌ ' + (err.error || res.statusText);
+                return;
+            }
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = '';
+            let finished = false;
+            while (!finished) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split('\n');
+                buf = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data:')) continue;
+                    try {
+                        const payload = JSON.parse(line.slice(5).trim());
+                        if (payload.msg !== undefined) {
+                            jobLog.textContent += payload.msg + '\n';
+                            jobLog.scrollTop = jobLog.scrollHeight;
+                        }
+                        if (payload.done) { finished = true; break; }
+                    } catch(e) {}
+                }
+            }
+        })
+        .catch(err => {
+            jobLog.textContent += '\n❌ Fetch error: ' + err.message;
+        })
+        .finally(markDone);
+}
+
+// Sidebar – scrape workspaces
+document.getElementById('btn-scrape-workspaces').addEventListener('click', function() {
+    runJob('/api/jobs/scrape-workspaces', 'Scraping workspace list from SUNO…', this,
+        () => init() // reload workspaces list when done
+    );
+});
+
+// Header toolbar – scrape songs for current workspace
+document.getElementById('btn-scrape-songs').addEventListener('click', function() {
+    if (!currentWorkspaceId) return;
+    runJob(
+        `/api/jobs/scrape-workspace-songs/${currentWorkspaceId}`,
+        `Scraping songs for "${workspacesData[currentWorkspaceId]?.name || currentWorkspaceId}"…`,
+        this,
+        () => selectWorkspace(currentWorkspaceId) // reload song list when done
+    );
+});
+
+// Header toolbar – download MP3s
+document.getElementById('btn-download-mp3').addEventListener('click', function() {
+    if (!currentWorkspaceId) return;
+    runJob(
+        `/api/jobs/download-mp3/${currentWorkspaceId}`,
+        `Downloading MP3s for "${workspacesData[currentWorkspaceId]?.name || currentWorkspaceId}"…`,
+        this,
+        () => selectWorkspace(currentWorkspaceId)
+    );
+});
+
+// Header toolbar – download WAVs
+document.getElementById('btn-download-wav').addEventListener('click', function() {
+    if (!currentWorkspaceId) return;
+    runJob(
+        `/api/jobs/download-wav/${currentWorkspaceId}`,
+        `Downloading WAVs for "${workspacesData[currentWorkspaceId]?.name || currentWorkspaceId}"…`,
+        this,
+        () => selectWorkspace(currentWorkspaceId)
+    );
+});
