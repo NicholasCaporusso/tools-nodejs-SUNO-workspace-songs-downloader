@@ -3,22 +3,78 @@ let currentWorkspaceId = null;
 let currentSongsMap = new Map();
 let currentPlayingSongId = null;
 let userSongData = {};
+let currentSort = 'date'; // 'date' | 'title' | 'like'
 
 // Elements
 const workspaceListEl = document.getElementById('workspace-list');
 const songListEl = document.getElementById('song-list');
 const searchInput = document.getElementById('search-input');
 const searchContainer = document.getElementById('search-container');
+const sortContainer = document.getElementById('sort-container');
 const currentWsNameEl = document.getElementById('current-workspace-name');
 const sunoWsLink = document.getElementById('suno-workspace-link');
 const songDetailsPanel = document.getElementById('song-details-panel');
 const audioPlayerContainer = document.getElementById('audio-player-container');
-const audioPlayer = document.getElementById('audio-player');
+const waveformPlayBtn = document.getElementById('waveform-play-btn');
+const waveformCurrentEl = document.getElementById('waveform-current');
+const waveformDurationEl = document.getElementById('waveform-duration');
 const nowPlayingImg = document.getElementById('now-playing-img');
 const nowPlayingTitle = document.getElementById('now-playing-title');
 const nowPlayingTags = document.getElementById('now-playing-tags');
 
-// Initialize
+// ── WaveSurfer ─────────────────────────────────────────────────────────────
+const wavesurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: '#93c5fd',
+    progressColor: '#2563eb',
+    cursorColor: '#1d4ed8',
+    barWidth: 2,
+    barGap: 1,
+    barRadius: 2,
+    height: 48,
+    normalize: true,
+    backend: 'WebAudio',
+});
+
+const playIconSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+const pauseIconSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+
+function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+wavesurfer.on('ready', () => {
+    waveformDurationEl.textContent = formatTime(wavesurfer.getDuration());
+    wavesurfer.play();
+});
+
+wavesurfer.on('audioprocess', () => {
+    waveformCurrentEl.textContent = formatTime(wavesurfer.getCurrentTime());
+});
+
+wavesurfer.on('play', () => {
+    waveformPlayBtn.innerHTML = pauseIconSVG;
+    renderSongs(searchInput.value);
+});
+
+wavesurfer.on('pause', () => {
+    waveformPlayBtn.innerHTML = playIconSVG;
+    renderSongs(searchInput.value);
+});
+
+wavesurfer.on('finish', () => {
+    waveformPlayBtn.innerHTML = playIconSVG;
+    waveformCurrentEl.textContent = '0:00';
+    renderSongs(searchInput.value);
+});
+
+waveformPlayBtn.addEventListener('click', () => {
+    wavesurfer.playPause();
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
     try {
         const [wsRes, userRes] = await Promise.all([
@@ -34,10 +90,10 @@ async function init() {
     }
 }
 
+// ── Workspaces ─────────────────────────────────────────────────────────────
 function renderWorkspaces() {
     workspaceListEl.innerHTML = '';
     
-    // Convert to array and sort: default first, then alphabetically by name
     const entries = Object.entries(workspacesData);
     entries.sort((a, b) => {
         if (a[0] === 'default') return -1;
@@ -80,6 +136,7 @@ async function selectWorkspace(id) {
     }
     
     searchContainer.classList.remove('hidden');
+    sortContainer.classList.remove('hidden');
     songListEl.innerHTML = '<li class="empty-state" style="grid-column: 1 / -1; width: 100%;">Loading songs...</li>';
     songDetailsPanel.classList.add('hidden');
     
@@ -99,6 +156,34 @@ async function selectWorkspace(id) {
     }
 }
 
+// ── Sort ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSort = btn.dataset.sort;
+        renderSongs(searchInput.value);
+    });
+});
+
+function sortSongs(songs) {
+    return [...songs].sort((a, b) => {
+        if (currentSort === 'title') {
+            return (a.title || '').localeCompare(b.title || '');
+        }
+        if (currentSort === 'like') {
+            const la = (userSongData[a.id] && userSongData[a.id].likeStatus === 'liked') ? 0 : 1;
+            const lb = (userSongData[b.id] && userSongData[b.id].likeStatus === 'liked') ? 0 : 1;
+            if (la !== lb) return la - lb;
+            // secondary: date
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
+        // default: date desc
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+}
+
+// ── Songs ──────────────────────────────────────────────────────────────────
 function renderSongs(filter = '') {
     songListEl.innerHTML = '';
     
@@ -115,10 +200,9 @@ function renderSongs(filter = '') {
         return;
     }
     
-    // Sort by created_at descending
-    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const sorted = sortSongs(filtered);
     
-    filtered.forEach(song => {
+    sorted.forEach(song => {
         const li = document.createElement('li');
         li.className = 'song-card';
         if (currentPlayingSongId === song.id) li.classList.add('active');
@@ -146,7 +230,7 @@ function renderSongs(filter = '') {
         const downloadHref = song.is_downloaded ? `/api/download/${currentWorkspaceId}/${song.id}` : '#';
         const downloadClass = song.is_downloaded ? '' : 'disabled';
         
-        const isPlaying = (currentPlayingSongId === song.id && !audioPlayer.paused);
+        const isPlaying = (currentPlayingSongId === song.id && wavesurfer.isPlaying());
         const playIcon = isPlaying ? '⏹' : '▶';
 
         li.innerHTML = `
@@ -222,6 +306,7 @@ function renderSongs(filter = '') {
     });
 }
 
+// ── Song Details ───────────────────────────────────────────────────────────
 function showSongDetails(song) {
     document.querySelectorAll('.song-card').forEach(el => el.classList.remove('active'));
     
@@ -299,40 +384,38 @@ function showSongDetails(song) {
     });
 }
 
+// ── Playback ───────────────────────────────────────────────────────────────
 function playSong(song) {
     if (!song.is_downloaded) return;
 
     const newSrc = `/api/audio/${currentWorkspaceId}/${song.id}`;
-    
-    if (audioPlayer.getAttribute('src') !== newSrc) {
-        currentPlayingSongId = song.id;
-        
-        // Update player UI
-        const imgUrl = song.image_url || 'https://cdn1.suno.ai/defaultBlue.webp';
-        nowPlayingImg.src = imgUrl;
-        nowPlayingTitle.textContent = song.title || 'Untitled';
-        nowPlayingTags.textContent = song.metadata && song.metadata.tags ? song.metadata.tags : '';
-        
-        audioPlayerContainer.classList.remove('hidden');
-        audioPlayer.src = newSrc;
-        audioPlayer.play();
+
+    // Update now-playing info
+    const imgUrl = song.image_url || 'https://cdn1.suno.ai/defaultBlue.webp';
+    nowPlayingImg.src = imgUrl;
+    nowPlayingTitle.textContent = song.title || 'Untitled';
+    nowPlayingTags.textContent = song.metadata && song.metadata.tags ? song.metadata.tags : '';
+
+    audioPlayerContainer.classList.remove('hidden');
+
+    if (currentPlayingSongId === song.id) {
+        // Same song – toggle play/pause
+        wavesurfer.playPause();
     } else {
-        if (audioPlayer.paused) {
-            audioPlayer.play();
-        } else {
-            audioPlayer.pause();
-        }
+        // New song – load and play
+        currentPlayingSongId = song.id;
+        waveformCurrentEl.textContent = '0:00';
+        waveformDurationEl.textContent = '0:00';
+        wavesurfer.load(newSrc);
     }
 }
 
-// Reactively keep play/pause icons synced across UI
-audioPlayer.addEventListener('play', () => renderSongs(searchInput.value));
-audioPlayer.addEventListener('pause', () => renderSongs(searchInput.value));
-
+// ── Search ─────────────────────────────────────────────────────────────────
 searchInput.addEventListener('input', (e) => {
     renderSongs(e.target.value);
 });
 
+// ── Like/Dislike ───────────────────────────────────────────────────────────
 async function toggleLikeStatus(songId, targetStatus) {
     if (!userSongData[songId]) userSongData[songId] = { likeStatus: null, comment: '' };
     

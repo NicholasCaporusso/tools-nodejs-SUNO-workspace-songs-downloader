@@ -94,12 +94,67 @@ body {
 }
 
 .main-header {
-    padding: 20px 30px;
+    padding: 16px 30px;
     background-color: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.sort-btn-group {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.sort-btn {
+    padding: 6px 14px;
+    border: none;
+    background: var(--panel-bg);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    border-right: 1px solid var(--border-color);
+}
+
+.sort-btn:last-child {
+    border-right: none;
+}
+
+.sort-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.sort-btn.active {
+    background: var(--accent-color);
+    color: #fff;
 }
 
 .header-info h1 {
@@ -580,9 +635,54 @@ body {
     max-width: 220px;
 }
 
-audio {
+/* Waveform Player */
+.waveform-section {
     flex: 1;
-    max-width: 800px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.waveform-controls {
+    flex-shrink: 0;
+}
+
+.waveform-play-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+
+.waveform-play-btn:hover {
+    background-color: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.waveform-container {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.waveform-time {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    gap: 2px;
 }
 
 .hidden {
