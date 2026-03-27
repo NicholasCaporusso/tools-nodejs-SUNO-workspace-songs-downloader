@@ -127,6 +127,12 @@ function renderSongs(filter = '') {
         const typeBadge = (song.has_vocal || (song.metadata && song.metadata.has_vocal)) 
             ? '<span class="badge badge-vocals">🎤 Lyrics</span>' 
             : '<span class="badge badge-instrumental">🎵 Instrumental</span>';
+            
+        let formatBadge = '';
+        if (song.is_downloaded && song.download_format) {
+            const fmt = song.download_format.toUpperCase();
+            formatBadge = `<span class="badge badge-format badge-format-${fmt.toLowerCase()}">${fmt}</span>`;
+        }
         
         const isPlaying = (currentPlayingSongId === song.id && !audioPlayer.paused);
         const playIcon = isPlaying ? '⏹' : '▶';
@@ -135,6 +141,7 @@ function renderSongs(filter = '') {
             <div class="card-image-wrapper">
                 <img class="song-img" src="${imgUrl}" alt="Song art" loading="lazy">
                 ${typeBadge}
+                ${formatBadge}
                 <span class="badge badge-duration">${duration}</span>
                 <button class="card-play-btn ${song.is_downloaded ? '' : 'disabled'}" data-id="${song.id}" title="${song.is_downloaded ? 'Play/Stop' : 'Not downloaded'}">
                     ${playIcon}

@@ -27,13 +27,18 @@ app.get('/api/workspaces/:id/songs', (req, res) => {
     const file = path.join(WORKSPACES_DIR, `${wsId}.json`);
     const audioDir = path.join(SONGS_DIR, wsId);
     
-    let downloadedSongs = new Set();
+    let downloadedSongs = new Map();
     try {
         if (fs.existsSync(audioDir)) {
             const files = fs.readdirSync(audioDir);
             files.forEach(f => {
-                const id = f.split('.')[0];
-                downloadedSongs.add(id);
+                const ext = path.extname(f).slice(1);
+                const id = path.basename(f, '.' + ext);
+                if (ext === 'wav') {
+                    downloadedSongs.set(id, 'wav');
+                } else if (ext === 'mp3' && downloadedSongs.get(id) !== 'wav') {
+                    downloadedSongs.set(id, 'mp3');
+                }
             });
         }
     } catch(e) {
@@ -45,7 +50,9 @@ app.get('/api/workspaces/:id/songs', (req, res) => {
         try {
             const songs = JSON.parse(data);
             for (let key in songs) {
-                songs[key].is_downloaded = downloadedSongs.has(songs[key].id);
+                const songId = songs[key].id;
+                songs[key].is_downloaded = downloadedSongs.has(songId);
+                songs[key].download_format = downloadedSongs.get(songId);
             }
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify(songs));
@@ -63,7 +70,10 @@ app.get('/api/audio/:workspaceId/:songId', (req, res) => {
 
     fs.readdir(wsDir, (err, files) => {
         if (err) return res.status(404).send('Workspace audio directory not found');
-        const songFile = files.find(f => f.startsWith(songId));
+        const wavFile = files.find(f => f === `${songId}.wav`);
+        const mp3File = files.find(f => f === `${songId}.mp3`);
+        
+        const songFile = wavFile || mp3File;
         if (!songFile) return res.status(404).send('Audio file not found');
         
         const filePath = path.join(wsDir, songFile);
@@ -73,5 +83,5 @@ app.get('/api/audio/:workspaceId/:songId', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
-    openurl.open(`http://localhost:${PORT}`);
+    // openurl.open(`http://localhost:${PORT}`);
 });

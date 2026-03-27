@@ -1,5 +1,8 @@
 # SUNO Downloader and Workspace Browser
 
+> [!WARNING]
+> **Important Note:** This script heavily depends on how the content is organized on SUNO and its internal APIs. If things change on SUNO's end, the script will stop working. If you encounter issues, please submit an issue on the repository!
+
 A complete toolkit for downloading your SUNO workspaces, songs, and metadata to your local machine, alongside a beautifully designed web interface to browse and play them.
 
 ## Requirements
@@ -23,8 +26,12 @@ The project includes three sequential Node.js scripts that fetch your data direc
    - Saves the song information payload for each workspace as a JSON file in the `data/workspaces/` directory.
 
 3. **`node downloader-03-songs.js`**
-   - Scans the downloaded song payloads and downloads the actual `.wav` audio files.
+   - Scans the downloaded song payloads and downloads the actual `.wav` audio files via browser automation.
    - Saves the audio files into workspace-specific subfolders in the `data/songs/` directory.
+
+4. **`node downloader-03-songs-MP3.js` (Recommended)**
+   - *Although the above script enables downloading WAV files, it is **highly recommended** to use this MP3 script instead to avoid overwhelming SUNO with requests!*
+   - Downloads the `.mp3` file directly utilizing the CDN link securely stored in the JSON payload, bypassing the UI.
 
 ---
 

@@ -208,6 +208,20 @@ body {
     right: 8px;
 }
 
+.badge-format {
+    bottom: 8px;
+    left: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.badge-format-wav {
+    background-color: #10b981; /* Green */
+}
+
+.badge-format-mp3 {
+    background-color: #f59e0b; /* Orange */
+}
+
 .card-play-btn {
     position: absolute;
     bottom: 10px;
