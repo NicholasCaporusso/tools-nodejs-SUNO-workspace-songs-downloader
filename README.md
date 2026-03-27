@@ -25,7 +25,7 @@ The project includes three sequential Node.js scripts that fetch your data direc
    - Iterates through the workspaces index and fetches the corresponding details and songs inside each one.
    - Saves the song information payload for each workspace as a JSON file in the `data/workspaces/` directory.
 
-3. **`node downloader-03-songs.js`**
+3. **`node downloader-03-songs-WAV.js`**
    - Scans the downloaded song payloads and downloads the actual `.wav` audio files via browser automation.
    - Saves the audio files into workspace-specific subfolders in the `data/songs/` directory.
 
