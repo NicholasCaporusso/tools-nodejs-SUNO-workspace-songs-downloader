@@ -67,7 +67,10 @@ We provide a fast, modern NodeJS + Express single-page application (SPA) to brow
 - **Interactive Song Cards**: Song cards feature duration badges, Instrumental/Lyrics indicators, and an interactive play/stop button. 
 - **Offline Playback**: Stream your downloaded local `.wav` files directly from your disk to your browser. Playbuttons for songs that have not yet been downloaded are automatically disabled.
 - **Details Panel**: Click on any song card to open a right-side panel displaying complete lyrics/prompts, tags, play counts, and timestamps.
-- **SUNO Integration**: Link back to specific songs (`suno.com/song/...`) and workspaces (`suno.com/create?wid=...`) directly on the live SUNO site.
+- **SUNO Integration**: Link back to specific songs (`suno.com/song/...`) and workspaces (`suno.com/create?wid=...`) directly on the live SUNO site via dedicated buttons.
+- **User Interactions**: Like or Dislike songs and leave personal comments directly from the song card or details panel. This data is saved to a persistent `user_song_data.json` file, so your preferences remain tied to the songs across workspaces.
+- **Direct Downloads**: A dedicated download button is present on every song card and details panel, allowing you to instantly save the local `.mp3` or `.wav` file to your native downloads folder.
+- **Polished Interface**: Built with modern, flat-design SVG icons and responsive interactions for a professional, frictionless browsing experience.
 
 ### How to Run the Interface
 

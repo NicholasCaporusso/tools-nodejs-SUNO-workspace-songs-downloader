@@ -60,7 +60,7 @@ async function downloadAllSongs(){
 	
 	for(const file of workspaceFiles){
 		// Skips default handling intentionally (assuming strict adherence to assigned workspaces)
-		if(file!='default.json') await downloadWorkspaceSongs(file,false)
+		if(file=='default.json') await downloadWorkspaceSongs(file,false)
 	}
 	await ctrl.close()
 }
