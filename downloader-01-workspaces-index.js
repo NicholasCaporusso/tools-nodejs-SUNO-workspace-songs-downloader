@@ -1,5 +1,5 @@
 'use strict'
-require('dotenv').config()
+require('dotenv').config({quiet:true})
 
 // Load environment variables for paths and HeyBro module
 const FILE_HEYBRO=process.env.FILE_HEYBRO
