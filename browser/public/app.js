@@ -43,7 +43,7 @@ const wavesurfer = WaveSurfer.create({
     barRadius: 2,
     height: 48,
     normalize: true,
-    backend: 'MediaElement',
+    backend: 'WebAudio',
 });
 
 const playIconSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
@@ -409,15 +409,16 @@ function playSong(song) {
 
     audioPlayerContainer.classList.remove('hidden');
 
-    // Explicitly stop and empty previous track to ensure waveform refreshes
-    wavesurfer.stop();
-    try { wavesurfer.empty(); } catch(e) {} // Handle older api just in case
-    
-    // Always start from the beginning and update waveform
-    currentPlayingSongId = song.id;
-    waveformCurrentEl.textContent = '0:00';
-    waveformDurationEl.textContent = '0:00';
-    wavesurfer.load(newSrc);
+    if (currentPlayingSongId === song.id) {
+        // Same song – toggle play/pause
+        wavesurfer.playPause();
+    } else {
+        // New song – load and play
+        currentPlayingSongId = song.id;
+        waveformCurrentEl.textContent = '0:00';
+        waveformDurationEl.textContent = '0:00';
+        wavesurfer.load(newSrc);
+    }
 }
 
 // ── Search ─────────────────────────────────────────────────────────────────
