@@ -1,6 +1,6 @@
 // Run from the project root so all relative .env paths (FOLDER_SESSION, etc.) resolve correctly
 process.chdir(require('path').join(__dirname, '..'));
-require('dotenv').config();
+require('dotenv').config({quiet:true})
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
