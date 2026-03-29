@@ -62,6 +62,7 @@ async function downloadWorkspaceIndex(){
 		await downloadWorkspacesDetail(workspace,false)
 	}
 	await ctrl.close()
+	ctrl=null
 }
 
 // Fetches the detailed list of songs (clips) belonging to a specific workspace
@@ -131,7 +132,10 @@ async function downloadWorkspacesDetail(workspace,autoclose=true){
 	// Execution finalized for this specific workspace; clean up context.
 	ctrl.stopNetCapture()
 	await ctrl.closeTab()
-	if(autoclose) await ctrl.close()
+	if(autoclose){
+		await ctrl.close()
+		ctrl=null
+	}
 }
 
 // Execute the download logic

@@ -63,6 +63,7 @@ async function downloadAllSongs(){
 		if(file!='default.json') await downloadWorkspaceSongs(file,false)
 	}
 	await ctrl.close()
+	ctrl=null
 }
 
 // Secondary Iterator: Loops through an individual workspace fetching un-downloaded songs
@@ -123,7 +124,10 @@ async function downloadSong(workspaceName,song,autoclose=true){
         console.log('No MP3 audio_url provided in JSON payload.')
     }
 	
-	if(autoclose) await ctrl.close()
+	if(autoclose){
+		await ctrl.close()
+		ctrl=null
+	}
 }
 
 // Run Script Sequence natively

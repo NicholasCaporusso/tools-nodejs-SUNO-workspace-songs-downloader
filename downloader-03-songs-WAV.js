@@ -63,6 +63,7 @@ async function downloadAllSongs(){
 		if(file=='default.json') await downloadWorkspaceSongs(file,false)
 	}
 	await ctrl.close()
+	ctrl=null
 }
 
 // Secondary Iterator: Loops through an individual workspace fetching un-downloaded songs
@@ -80,8 +81,11 @@ async function downloadWorkspaceSongs(file,autoclose=true){
 	for(const song of songs){
 		const foundPath=findFileRecursive(FOLDER_SONGS,`${song.id}.wav`)
 		if(foundPath && !foundPath.includes(workspaceName)){
-			console.log(foundPath)
-			process.exit() // Terminate explicitly indicating data migration misalignment
+			let oldWorkspace=foundPath.split('\\')
+			oldWorkspace=oldWorkspace[oldWorkspace.length-2]
+			fs.renameSync(foundPath,foundPath.replace(oldWorkspace,workspaceName))
+			console.log(`WAV moved from ${oldWorkspace} to ${workspaceName}`)
+			//process.exit() // Terminate explicitly indicating data migration misalignment
 		}
 	}
 	
@@ -96,7 +100,10 @@ async function downloadWorkspaceSongs(file,autoclose=true){
 			await downloadSong(workspaceName,song,false)
 		}else console.log('already downloaded')
 	}
-	if(autoclose) await ctrl.close()
+	if(autoclose){
+		await ctrl.close()
+		ctrl=null
+	}
 }
 
 // Core Task Execution: Emulates explicit browser clicking targeting the specific song resource download menu
@@ -164,7 +171,10 @@ async function downloadSong(workspaceName,song,autoclose=true){
 	}
 	// Finish Context Cleanups
 	await ctrl.clearNetLog()
-	if(autoclose) await ctrl.close()
+	if(autoclose){
+		await ctrl.close()
+		ctrl=null
+	}
 }
 // Run Script Sequence natively
 if(require.main === module){

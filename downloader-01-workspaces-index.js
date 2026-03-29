@@ -100,6 +100,7 @@ async function downloadWorkspacesIndex(){
 	await ctrl.stopNetCapture()
 	await ctrl.clearNetLog()
 	await ctrl.close()
+	ctrl=null
 }
 
 // Execute the download logic
