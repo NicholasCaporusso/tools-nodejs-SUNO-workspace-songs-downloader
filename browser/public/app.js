@@ -22,6 +22,9 @@ const waveformDurationEl = document.getElementById('waveform-duration');
 const nowPlayingImg = document.getElementById('now-playing-img');
 const nowPlayingTitle = document.getElementById('now-playing-title');
 const nowPlayingTags = document.getElementById('now-playing-tags');
+const wsCountSpan = document.getElementById('workspace-count');
+const wsSongCountSpan = document.getElementById('workspace-song-count');
+const btnSaveSongs = document.getElementById('btn-save-songs');
 
 // Job modal elements
 const jobModal = document.getElementById('job-modal');
@@ -131,6 +134,10 @@ function renderWorkspaces() {
         
         workspaceListEl.appendChild(li);
     });
+    
+    if (wsCountSpan) {
+        wsCountSpan.textContent = `(${entries.length})`;
+    }
 }
 
 async function selectWorkspace(id) {
@@ -141,8 +148,10 @@ async function selectWorkspace(id) {
     if (id !== 'default') {
         sunoWsLink.href = `https://suno.com/create?wid=${id}`;
         sunoWsLink.classList.remove('hidden');
+        if (btnSaveSongs) btnSaveSongs.classList.remove('hidden');
     } else {
         sunoWsLink.classList.add('hidden');
+        if (btnSaveSongs) btnSaveSongs.classList.add('hidden');
     }
     
     searchContainer.classList.remove('hidden');
@@ -159,6 +168,10 @@ async function selectWorkspace(id) {
         Object.values(data).forEach(song => {
             currentSongsMap.set(song.id, song);
         });
+        
+        if (wsSongCountSpan) {
+            wsSongCountSpan.textContent = `(${Object.keys(data).length} songs)`;
+        }
         
         renderSongs();
     } catch (err) {
@@ -467,7 +480,7 @@ async function saveUserData(songId, action, value) {
 init();
 
 // ── Job Runner ─────────────────────────────────────────────────────────────
-function runJob(url, title, triggerBtn, onComplete) {
+function runJob(url, title, triggerBtn, onComplete, bodyData = null) {
     // Show pulsing dot to signal active job
     jobModalTitle.innerHTML = `<span class="job-running-dot"></span>${title}`;
     jobLog.textContent = '';
@@ -485,7 +498,13 @@ function runJob(url, title, triggerBtn, onComplete) {
         if (typeof onComplete === 'function') onComplete();
     };
 
-    fetch(url, { method: 'POST' })
+    const fetchOptions = { method: 'POST' };
+    if (bodyData) {
+        fetchOptions.headers = { 'Content-Type': 'application/json' };
+        fetchOptions.body = JSON.stringify(bodyData);
+    }
+
+    fetch(url, fetchOptions)
         .then(async res => {
             if (!res.ok) {
                 const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -560,3 +579,43 @@ document.getElementById('btn-download-wav').addEventListener('click', function()
         () => selectWorkspace(currentWorkspaceId)
     );
 });
+
+// Header toolbar – save songs to folder
+const saveSongsModal = document.getElementById('save-songs-modal');
+const saveSongsClose = document.getElementById('save-songs-close');
+const saveSongsForm = document.getElementById('save-songs-form');
+const saveSongsPath = document.getElementById('save-songs-path');
+
+if (btnSaveSongs && saveSongsModal) {
+    btnSaveSongs.addEventListener('click', function() {
+        if (!currentWorkspaceId || currentWorkspaceId === 'default') return;
+        saveSongsModal.classList.remove('hidden');
+        saveSongsPath.focus();
+    });
+
+    saveSongsClose.addEventListener('click', () => {
+        saveSongsModal.classList.add('hidden');
+    });
+
+    saveSongsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentWorkspaceId || currentWorkspaceId === 'default') return;
+
+        const targetPath = saveSongsPath.value.trim();
+        if (!targetPath) return;
+
+        const filterRadio = document.querySelector('input[name="save-songs-filter"]:checked');
+        const filter = filterRadio ? filterRadio.value : 'all';
+        
+        saveSongsModal.classList.add('hidden');
+        saveSongsPath.value = ''; // reset for next time
+        
+        runJob(
+            `/api/jobs/save-songs/${currentWorkspaceId}`,
+            `Saving ${filter} songs to ${targetPath}…`,
+            btnSaveSongs,
+            null,
+            { targetPath, filter }
+        );
+    });
+}

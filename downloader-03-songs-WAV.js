@@ -8,6 +8,7 @@ const FOLDER_DATA=process.env.FOLDER_DATA
 const FOLDER_WORKSPACES=process.env.FOLDER_WORKSPACES
 const FOLDER_SONGS=process.env.FOLDER_SONGS
 const FILE_WORKSPACES=process.env.FILE_WORKSPACES
+const TIMEOUT_AUDIO_DOWNLOAD=process.env.TIMEOUT_AUDIO_DOWNLOAD
 
 const fs=require('fs')
 const path=require('path')
@@ -15,6 +16,7 @@ const path=require('path')
 const {BrowserController}=require(FILE_HEYBRO)
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 let ctrl=null
+let downloadTimeout=null
 
 // Verify essential folder paths exist on filesystem to prevent crash exceptions
 if(!fs.existsSync(FOLDER_WORKSPACES)) fs.mkdirSync(FOLDER_WORKSPACES,{recursive:true})
@@ -136,6 +138,10 @@ async function downloadSong(workspaceName,song,autoclose=true){
 	}
 	
 	let audioFile=null
+	downloadTimeout=setTimeout(()=>{
+		console.log('Timeout expired.')
+		process.exit()
+	},TIMEOUT_AUDIO_DOWNLOAD)
 	process.stdout.write('Waiting for audio file...')
 	
 	// Block operation periodically querying network intercepts
@@ -147,6 +153,7 @@ async function downloadSong(workspaceName,song,autoclose=true){
 		for(const entry of logEntries){
 			if(entry.url.includes('/api/gen/') && entry.contentType=='application/json'){
 				console.log('done')
+				clearTimeout(downloadTimeout)
 				let buffer=null 
 				while(!buffer || buffer.length<=0){
 					await sleep(500)

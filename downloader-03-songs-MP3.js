@@ -15,6 +15,7 @@ const path=require('path')
 const {BrowserController}=require(FILE_HEYBRO)
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 let ctrl=null
+let downloadTimeout=null
 
 // Verify essential folder paths exist on filesystem to prevent crash exceptions
 if(!fs.existsSync(FOLDER_WORKSPACES)) fs.mkdirSync(FOLDER_WORKSPACES,{recursive:true})

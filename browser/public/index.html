@@ -10,7 +10,7 @@
     <div id="app">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>Workspaces</h2>
+                <h2>Workspaces <span id="workspace-count" style="font-size: 0.8em; color: var(--text-muted, #666);"></span></h2>
                 <button id="btn-scrape-workspaces" class="sidebar-action-btn" title="Re-scrape workspace list from SUNO">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                     Scrape
@@ -23,14 +23,23 @@
         <main class="main-content">
             <header class="main-header">
                 <div class="header-info">
-                    <h1 id="current-workspace-name">Select a Workspace</h1>
-                    <a id="suno-workspace-link" target="_blank" class="suno-link hidden">View on SUNO ↗</a>
+                    <h1>
+                        <span id="current-workspace-name">Select a Workspace</span>
+                        <span id="workspace-song-count" style="font-size: 0.6em; color: var(--text-muted, #666); margin-left:10px;"></span>
+                    </h1>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <a id="suno-workspace-link" target="_blank" class="suno-link hidden">View on SUNO ↗</a>
+                        <button id="btn-save-songs" class="action-toolbar-btn hidden" title="Save songs to local folder">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            Save songs
+                        </button>
+                    </div>
                 </div>
                 <div class="header-controls">
                     <div class="workspace-actions hidden" id="workspace-actions">
                         <button id="btn-scrape-songs" class="action-toolbar-btn" title="Re-scrape song list for this workspace">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            Scrape Songs
+                            Refresh
                         </button>
                         <button id="btn-download-mp3" class="action-toolbar-btn" title="Download missing MP3s for this workspace">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -75,6 +84,32 @@
                 <button id="job-modal-close" class="job-modal-close" disabled>✕ Close</button>
             </div>
             <pre id="job-log" class="job-log"></pre>
+        </div>
+    </div>
+    
+    <!-- Save Songs Modal -->
+    <div id="save-songs-modal" class="job-modal hidden">
+        <div class="job-modal-inner" style="max-width: 500px;">
+            <div class="job-modal-header">
+                <span>Save Songs to Local Folder</span>
+                <button id="save-songs-close" class="job-modal-close">✕</button>
+            </div>
+            <form id="save-songs-form" style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label for="save-songs-path" style="display: block; margin-bottom: 5px; font-weight: bold;">Destination Folder Path:</label>
+                    <input type="text" id="save-songs-path" required placeholder="e.g. C:\Users\Name\Music\SUNO" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Which songs to save?</label>
+                    <div style="display: flex; gap: 15px;">
+                        <label><input type="radio" name="save-songs-filter" value="all" checked> All downloaded songs</label>
+                        <label><input type="radio" name="save-songs-filter" value="liked"> Only liked songs</label>
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 10px;">
+                    <button type="submit" class="action-toolbar-btn" style="background: var(--primary-color, #2563eb); color: white;">Save Songs</button>
+                </div>
+            </form>
         </div>
     </div>
     

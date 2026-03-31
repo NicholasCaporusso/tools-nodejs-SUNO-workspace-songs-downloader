@@ -11,14 +11,18 @@ const openurl = require('openurl');
 const app = express();
 const PORT = process.env.PORT || 3035;
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const WORKSPACES_FILE = path.join(DATA_DIR, 'workspaces.json');
-const WORKSPACES_DIR = path.join(DATA_DIR, 'workspaces');
-const SONGS_DIR = path.join(DATA_DIR, 'songs');
+const DATA_DIR = process.env.FOLDER_DATA || path.join(__dirname, '..', 'data');
+const WORKSPACES_FILE = process.env.FILE_WORKSPACES || path.join(DATA_DIR, 'workspaces.json');
+const WORKSPACES_DIR = process.env.FOLDER_WORKSPACES || path.join(DATA_DIR, 'workspaces');
+const SONGS_DIR = process.env.FOLDER_SONGS || path.join(DATA_DIR, 'songs');
 const USER_DATA_FILE = path.join(DATA_DIR, 'user_song_data.json');
 
 // Initialize if it doesn't exist
 if (!fs.existsSync(USER_DATA_FILE)) {
+    const userDir = path.dirname(USER_DATA_FILE);
+    if (!fs.existsSync(userDir)) {
+        fs.mkdirSync(userDir, { recursive: true });
+    }
     fs.writeFileSync(USER_DATA_FILE, JSON.stringify({}));
 }
 
@@ -249,6 +253,56 @@ app.post('/api/jobs/download-wav/:workspaceId', (req, res) => {
     runJob(req, res, `Downloading WAVs for workspace ${wsId}…`, () => downloadWorkspaceSongs(`${wsId}.json`));
 });
 
+// POST /api/jobs/save-songs/:workspaceId
+app.post('/api/jobs/save-songs/:workspaceId', (req, res) => {
+    const wsId = req.params.workspaceId;
+    const { targetPath, filter } = req.body;
+    
+    runJob(req, res, `Saving ${filter} songs to ${targetPath}…`, async () => {
+        if (!targetPath) throw new Error('Target path is required');
+        
+        const wsDir = path.join(SONGS_DIR, wsId);
+        
+        if (!fs.existsSync(wsDir)) {
+            throw new Error('Workspace audio directory not found');
+        }
+        
+        if (!fs.existsSync(targetPath)) {
+            fs.mkdirSync(targetPath, { recursive: true });
+        }
+        
+        let userData = {};
+        if (fs.existsSync(USER_DATA_FILE)) {
+            try { userData = JSON.parse(fs.readFileSync(USER_DATA_FILE, 'utf8')); } catch(e) {}
+        }
+        
+        const files = fs.readdirSync(wsDir);
+        let copied = 0;
+        
+        console.log(`Scanning ${files.length} downloaded files in workspace...`);
+        for (const file of files) {
+            const ext = path.extname(file);
+            if (ext !== '.mp3' && ext !== '.wav') continue;
+            
+            const songId = path.basename(file, ext);
+            
+            if (filter === 'liked') {
+                if (!userData[songId] || userData[songId].likeStatus !== 'liked') {
+                    continue;
+                }
+            }
+            
+            const src = path.join(wsDir, file);
+            const dst = path.join(targetPath, file);
+            
+            fs.copyFileSync(src, dst);
+            copied++;
+        }
+        
+        console.log(`Successfully saved ${copied} ${filter === 'liked' ? 'liked ' : ''}song files to ${targetPath}.`);
+    });
+});
+
 // GET /api/jobs/status
 app.get('/api/jobs/status', (req, res) => {
     res.json({ running: jobRunning });
@@ -256,5 +310,5 @@ app.get('/api/jobs/status', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
-    // openurl.open(`http://localhost:${PORT}`);
+    openurl.open(`http://localhost:${PORT}`);
 });
