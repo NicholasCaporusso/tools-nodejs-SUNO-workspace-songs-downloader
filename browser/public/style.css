@@ -422,7 +422,6 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
-    border-top: 1px solid var(--border-color);
     padding-top: 12px;
 }
 

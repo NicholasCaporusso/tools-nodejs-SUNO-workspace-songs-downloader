@@ -270,6 +270,7 @@ function renderSongs(filter = '') {
             </div>
             <div class="song-info">
                 <h3>${song.title || 'Untitled'}</h3>
+                <div class="song-id" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">${song.id}</div>
                 <div class="song-meta">${tags}</div>
                 <div class="card-footer-meta">
                     <span class="plays-count">${song.play_count || 0} plays</span>
@@ -352,6 +353,7 @@ function showSongDetails(song) {
         <div class="details-header">
             <img src="${imgUrl}" alt="Cover">
             <h2>${song.title || 'Untitled'}</h2>
+            <div class="song-id" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">${song.id}</div>
             <div class="details-meta">${song.created_at ? 'Created: ' + new Date(song.created_at).toLocaleString() : ''}</div>
             <a href="https://suno.com/song/${song.id}" target="_blank" class="suno-link" style="display:block; margin-bottom: 15px;">View on SUNO ↗</a>
             
@@ -607,6 +609,9 @@ if (btnSaveSongs && saveSongsModal) {
         const filterRadio = document.querySelector('input[name="save-songs-filter"]:checked');
         const filter = filterRadio ? filterRadio.value : 'all';
         
+        const namingRadio = document.querySelector('input[name="save-songs-naming"]:checked');
+        const naming = namingRadio ? namingRadio.value : 'original';
+        
         saveSongsModal.classList.add('hidden');
         saveSongsPath.value = ''; // reset for next time
         
@@ -615,7 +620,7 @@ if (btnSaveSongs && saveSongsModal) {
             `Saving ${filter} songs to ${targetPath}…`,
             btnSaveSongs,
             null,
-            { targetPath, filter }
+            { targetPath, filter, naming }
         );
     });
 }

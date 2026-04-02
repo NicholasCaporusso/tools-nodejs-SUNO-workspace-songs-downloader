@@ -6,8 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const openurl = require('openurl');
 
-
-
 const app = express();
 const PORT = process.env.PORT || 3035;
 
@@ -256,7 +254,9 @@ app.post('/api/jobs/download-wav/:workspaceId', (req, res) => {
 // POST /api/jobs/save-songs/:workspaceId
 app.post('/api/jobs/save-songs/:workspaceId', (req, res) => {
     const wsId = req.params.workspaceId;
-    const { targetPath, filter } = req.body;
+    const { targetPath, filter, naming } = req.body;
+    
+    console.log(`[save-songs] body received:`, req.body);
     
     runJob(req, res, `Saving ${filter} songs to ${targetPath}…`, async () => {
         if (!targetPath) throw new Error('Target path is required');
@@ -276,6 +276,23 @@ app.post('/api/jobs/save-songs/:workspaceId', (req, res) => {
             try { userData = JSON.parse(fs.readFileSync(USER_DATA_FILE, 'utf8')); } catch(e) {}
         }
         
+        let wsData = {};
+        console.log(`[save-songs] naming mode: ${naming}, wsId: ${wsId}`);
+        if (naming === 'title') {
+            const wsDataPath = path.join(WORKSPACES_DIR, `${wsId}.json`);
+            console.log(`[save-songs] checking workspace data path: ${wsDataPath}`);
+            if (fs.existsSync(wsDataPath)) {
+                try {
+                    wsData = JSON.parse(fs.readFileSync(wsDataPath, 'utf8'));
+                    console.log(`[save-songs] successfully loaded workspace data for ${wsId}, found ${Object.keys(wsData).length} songs.`);
+                } catch(e) {
+                    console.error('[save-songs] Error parsing workspace data:', e);
+                }
+            } else {
+                console.log(`[save-songs] workspace data file not found: ${wsDataPath}`);
+            }
+        }
+        
         const files = fs.readdirSync(wsDir);
         let copied = 0;
         
@@ -293,7 +310,22 @@ app.post('/api/jobs/save-songs/:workspaceId', (req, res) => {
             }
             
             const src = path.join(wsDir, file);
-            const dst = path.join(targetPath, file);
+            let dstFileName = file;
+            
+            if (naming === 'title') {
+                if (wsData[songId]) {
+                    console.log(`[save-songs] Found song data for ${songId}: title="${wsData[songId].title}"`);
+                    if (wsData[songId].title) {
+                        const safeTitle = String(wsData[songId].title).replace(/[\\/:*?"<>|]/g, '').trim() || 'Unknown Title';
+                        dstFileName = `${safeTitle} - ${file}`;
+                        console.log(`[save-songs] Renaming to ${dstFileName}`);
+                    }
+                } else {
+                    console.log(`[save-songs] No song data found for ${songId} in workspace ${wsId}`);
+                }
+            }
+            
+            const dst = path.join(targetPath, dstFileName);
             
             fs.copyFileSync(src, dst);
             copied++;

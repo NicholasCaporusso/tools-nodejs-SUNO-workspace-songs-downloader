@@ -17,6 +17,7 @@ const {BrowserController}=require(FILE_HEYBRO)
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 let ctrl=null
 let downloadTimeout=null
+let timeoutExpired=false
 
 // Verify essential folder paths exist on filesystem to prevent crash exceptions
 if(!fs.existsSync(FOLDER_WORKSPACES)) fs.mkdirSync(FOLDER_WORKSPACES,{recursive:true})
@@ -138,14 +139,19 @@ async function downloadSong(workspaceName,song,autoclose=true){
 	}
 	
 	let audioFile=null
-	downloadTimeout=setTimeout(()=>{
+	downloadTimeout=setTimeout(async()=>{
+		timeoutExpired=true
 		console.log('Timeout expired.')
-		process.exit()
+		return
 	},TIMEOUT_AUDIO_DOWNLOAD)
 	process.stdout.write('Waiting for audio file...')
 	
 	// Block operation periodically querying network intercepts
 	while(!audioFile){
+		if(timeoutExpired){
+			autoclose=true
+			break
+		}
 		await sleep(5000)
 		process.stdout.write('.')
 		const logEntries=await ctrl.getNetLog()
